@@ -442,66 +442,53 @@ function abrirDetalheCelula(tag){
   abrirModal(h);
 }
 
-// ---------- RELATÓRIOS ----------
+// ---------- RELATÓRIOS (layout do editor antigo: formulário + preview) ----------
 function renderRelatorios(){
   const t = S.topo||{};
   let h = `
-  <div class="card"><h2>Cabeçalho do relatório de turno</h2>
-    <div class="grid g2">
-      <div class="campo"><label>Linha 1 (empresa)</label><input type="text" data-path="topo.rotulo1" value="${esc(t.rotulo1)}"></div>
-      <div class="campo"><label>Linha 2 (setor)</label><input type="text" data-path="topo.rotulo2" value="${esc(t.rotulo2)}"></div>
-      <div class="campo"><label>Data</label><input type="text" data-path="topo.data" value="${esc(t.data)}"></div>
-      <div class="campo"><label>Semana</label><input type="text" data-path="topo.semana" value="${esc(t.semana)}"></div>
-    </div>
-    <div class="campo"><label>Título</label><input type="text" data-path="titulo" value="${esc(S.titulo)}"></div>
-    <div class="campo"><label>Subtítulo</label><input type="text" data-path="subtitulo" value="${esc(S.subtitulo)}"></div>
-    <div class="campo"><label>Slogan</label><input type="text" data-path="slogan" value="${esc(S.slogan)}"></div>
-    <div class="grid g2">
-      <div class="campo"><label>Rodapé linha 1</label><input type="text" data-path="rodape1" value="${esc(S.rodape1)}"></div>
-      <div class="campo"><label>Rodapé linha 2</label><input type="text" data-path="rodape2" value="${esc(S.rodape2)}"></div>
-    </div>
-  </div>
-
-  <div class="card"><h2>Relatório de turno</h2>
+  <div class="card"><h2>Gerar relatório</h2>
     <div class="btnrow">
       <button class="btn outline" data-act="preview">🔄 Preview</button>
       <button class="btn prim" data-act="baixar-png">🖼️ Baixar PNG</button>
       <button class="btn prim" data-act="baixar-doc">📄 Baixar DOC</button>
       <button class="btn prim" data-act="baixar-pdf">📕 Baixar PDF</button>
-    </div>
-    <img id="pv" alt="preview do relatório">
-  </div>
-
-  <div class="card"><h2>Relatório de inspeções</h2>
-    <p style="color:hsl(var(--muted-foreground));margin-bottom:12px">Relatório de inspeção e status operacional — todas as células, última inspeção de cada uma.</p>
-    <div class="btnrow">
-      <button class="btn prim" data-act="baixar-pdf-inspecoes">📋 Baixar PDF de inspeções</button>
-    </div>
-  </div>
-
-  <div class="card"><h2>Dados</h2>
-    <div class="btnrow">
-      <button class="btn outline" data-act="exportar">⬇ Exportar JSON</button>
-      <button class="btn outline" data-act="importar">⬆ Importar JSON</button>
-      <button class="btn danger" data-act="padrao">⟲ Restaurar padrão</button>
+      <button class="btn outline" data-act="baixar-pdf-inspecoes">📋 PDF Inspeções</button>
+      <button class="btn outline" data-act="exportar">⬇ Exportar</button>
+      <button class="btn outline" data-act="importar">⬆ Importar</button>
+      <button class="btn danger" data-act="padrao">⟲ Padrão</button>
     </div>
     <div class="btnrow" style="margin-top:10px"><span id="msg"></span><span id="ult" style="color:hsl(var(--muted-foreground));font-size:12px"></span></div>
   </div>
 
-  <div class="card"><h2 style="cursor:pointer" id="av-titulo" data-act="toggle-av">▸ Edição avançada (circuitos, pendências e disponibilidade)</h2>
-    <div id="av-corpo" style="display:none">
-      <div id="av-circuitos"></div>
-      <div id="av-pendencias"></div>
-      <div id="av-pills"></div>
+  <div class="rel-grid">
+    <div>
+      <div class="card"><h2>Cabeçalho</h2>
+        <div class="grid g2">
+          <div class="campo"><label>Linha 1 (empresa)</label><input type="text" data-path="topo.rotulo1" value="${esc(t.rotulo1)}"></div>
+          <div class="campo"><label>Linha 2 (setor)</label><input type="text" data-path="topo.rotulo2" value="${esc(t.rotulo2)}"></div>
+          <div class="campo"><label>Data</label><input type="text" data-path="topo.data" value="${esc(t.data)}"></div>
+          <div class="campo"><label>Semana</label><input type="text" data-path="topo.semana" value="${esc(t.semana)}"></div>
+        </div>
+        <div class="campo"><label>Título</label><input type="text" data-path="titulo" value="${esc(S.titulo)}"></div>
+        <div class="campo"><label>Subtítulo</label><input type="text" data-path="subtitulo" value="${esc(S.subtitulo)}"></div>
+        <div class="campo"><label>Slogan</label><input type="text" data-path="slogan" value="${esc(S.slogan)}"></div>
+        <div class="grid g2">
+          <div class="campo"><label>Rodapé linha 1</label><input type="text" data-path="rodape1" value="${esc(S.rodape1)}"></div>
+          <div class="campo"><label>Rodapé linha 2</label><input type="text" data-path="rodape2" value="${esc(S.rodape2)}"></div>
+        </div>
+      </div>
+      <div class="card"><h2>Circuitos</h2><div id="rel-circ"></div></div>
+      <div class="card"><h2>Pendências em aberto</h2><div id="rel-pend"></div></div>
+      <div class="card"><h2>Disponibilidade geral</h2><div id="rel-pill"></div></div>
+    </div>
+    <div class="rel-prev">
+      <div class="pv-tit">PREVIEW PNG</div>
+      <img id="pv" alt="preview do relatório">
     </div>
   </div>`;
   document.getElementById('rel').innerHTML = h;
-  renderEdicaoAvancada();
-}
-
-// --- edição avançada (port do editor antigo) ---
-function renderEdicaoAvancada(){
   renderAvCircuitos(); renderAvPendencias(); renderAvPills();
+  preview();
 }
 function corSel(path, cur){
   let o = `<select data-path="${path}" class="csel c-${esc(cur)}">`;
@@ -510,7 +497,7 @@ function corSel(path, cur){
   return o+'</select>';
 }
 function renderAvCircuitos(){
-  let h = `<h2 style="margin-top:6px">Circuitos</h2>`;
+  let h = ``;
   (S.circuitos||[]).forEach((c,ci)=>{
     h += `<div class="circ"><div class="circ-head">
       <input type="text" data-path="circuitos.${ci}.nome" value="${esc(c.nome)}" placeholder="Nome do circuito">
@@ -529,20 +516,20 @@ function renderAvCircuitos(){
     h += `</div><button class="btn outline mini" style="margin-top:8px" data-act="add-item" data-i="${ci}">+ adicionar item</button></div>`;
   });
   h += `<button class="btn outline mini" data-act="add-circ">+ adicionar circuito</button>`;
-  document.getElementById('av-circuitos').innerHTML = h;
+  document.getElementById('rel-circ').innerHTML = h;
 }
 function renderAvPendencias(){
-  let h = `<h2 style="margin-top:14px">Pendências em aberto</h2>`;
+  let h = ``;
   (S.pendencias||[]).forEach((p,pi)=>{
     h += `<div class="pend-item">
       <input type="text" data-path="pendencias.${pi}" value="${esc(p)}" placeholder="Pendência">
       <button class="btn danger mini" data-act="del-pend" data-i="${pi}">✕</button></div>`;
   });
   h += `<button class="btn outline mini" data-act="add-pend">+ adicionar pendência</button>`;
-  document.getElementById('av-pendencias').innerHTML = h;
+  document.getElementById('rel-pend').innerHTML = h;
 }
 function renderAvPills(){
-  let h = `<h2 style="margin-top:14px">Disponibilidade geral (pílulas)</h2>`;
+  let h = ``;
   (S.pills||[]).forEach((pl,pi)=>{
     h += `<div class="pill-item">
       <input type="text" data-path="pills.${pi}.rotulo" value="${esc(pl.rotulo)}" placeholder="Rótulo">
@@ -551,7 +538,7 @@ function renderAvPills(){
       <button class="btn danger mini" data-act="del-pill" data-i="${pi}">✕</button></div>`;
   });
   h += `<button class="btn outline mini" data-act="add-pill">+ adicionar pílula</button>`;
-  document.getElementById('av-pills').innerHTML = h;
+  document.getElementById('rel-pill').innerHTML = h;
 }
 
 function setPath(o, path, v){
@@ -621,17 +608,10 @@ document.addEventListener('click', e=>{
   else if (a==='exportar') exportarJSON();
   else if (a==='importar') document.getElementById('imp').click();
   else if (a==='padrao') restaurarPadrao();
-  else if (a==='toggle-av'){
-    const corpo = document.getElementById('av-corpo');
-    const tit = document.getElementById('av-titulo');
-    const aberto = corpo.style.display !== 'none';
-    corpo.style.display = aberto ? 'none' : '';
-    tit.textContent = (aberto ? '▸' : '▾') + ' Edição avançada (circuitos, pendências e disponibilidade)';
-  }
 
-  else if (a==='add-circ'){ S.circuitos.push({nome:'NOVO CIRCUITO', badge:'', itens:[{tag:'TAG-000',status:'DISPONÍVEL',cor:'verde',nota:''}]}); agendarSalvar(); renderAvCircuitos(); }
+  else if (a==='add-circ'){ S.circuitos.push({nome:'NOVO CIRCUITO', badge:'', itens:[{tag:'TAG-000',status:'DISPONÍVEL',cor:'verde',nota:'—'}]}); agendarSalvar(); renderAvCircuitos(); }
   else if (a==='del-circ'){ S.circuitos.splice(i,1); agendarSalvar(); renderAvCircuitos(); }
-  else if (a==='add-item'){ S.circuitos[i].itens.push({tag:'TAG-000',status:'DISPONÍVEL',cor:'verde',nota:''}); agendarSalvar(); renderAvCircuitos(); }
+  else if (a==='add-item'){ S.circuitos[i].itens.push({tag:'TAG-000',status:'DISPONÍVEL',cor:'verde',nota:'—'}); agendarSalvar(); renderAvCircuitos(); }
   else if (a==='del-item'){ S.circuitos[i].itens.splice(j,1); agendarSalvar(); renderAvCircuitos(); }
   else if (a==='add-pend'){ S.pendencias.push(''); agendarSalvar(); renderAvPendencias(); }
   else if (a==='del-pend'){ S.pendencias.splice(i,1); agendarSalvar(); renderAvPendencias(); }
