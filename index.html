@@ -64,6 +64,7 @@ input:focus,select:focus{outline:2px solid #3fe0d6;border-color:#00727a;}
     <button class="outline" onclick="restaurarPadrao()">⟲ Padrão</button>
     <button class="prim" onclick="baixarDOC()">📄 Baixar DOC</button>
     <button class="prim" onclick="baixarPNG()">🖼️ Baixar PNG</button>
+    <button class="prim" onclick="baixarPDF()">📕 Baixar PDF</button>
   </div>
 </div>
 <input type="file" id="imp" accept=".json" style="display:none">
@@ -84,6 +85,7 @@ input:focus,select:focus{outline:2px solid #3fe0d6;border-color:#00727a;}
 
 <div id="credito">© 2026 - Desenvolvido por Matheus Gustavo Melo Da Silva - Sala de Controle ERO TUCUMÃ</div>
 
+<script src="jspdf.umd.min.js"></script>
 <script src="render.js"></script>
 <script>
 const CHAVE = 'flotacao_dados_v1';
@@ -301,6 +303,23 @@ async function baixarPNG(){
   mostrar('Gerando PNG…');
   const cv = await renderPNG(S, icone);
   cv.toBlob(b => { baixarBlob(b, 'relatorio_flotacao.png'); mostrar('PNG baixado ✓'); }, 'image/png');
+}
+
+async function baixarPDF(){
+  mostrar('Gerando PDF…');
+  const cv = await renderPNG(S, icone);
+  const { jsPDF } = window.jspdf;
+  const imgData = cv.toDataURL('image/jpeg', 0.92);
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pw = pdf.internal.pageSize.getWidth();
+  const ph = pdf.internal.pageSize.getHeight();
+  const margem = 10;
+  const escala = Math.min((pw - 2 * margem) / cv.width, (ph - 2 * margem) / cv.height);
+  const w = cv.width * escala;
+  const h = cv.height * escala;
+  pdf.addImage(imgData, 'JPEG', (pw - w) / 2, (ph - h) / 2, w, h);
+  pdf.save('relatorio_flotacao.pdf');
+  mostrar('PDF baixado ✓');
 }
 
 function gerarDOC(){
