@@ -199,7 +199,16 @@ function renderDashboard(){
     const u = ultimaInspecao(tag);
     if (u) porCor[u.cor||corDeStatus(u.status)]++;
   }
-  const ultimas = [...ins].sort((a,b)=>chaveData(b.data).localeCompare(chaveData(a.data))).slice(0,5);
+  // últimas inspeções: só pendências (vermelho) e atenções (amarelo) — disponíveis não aparecem
+  const ordemCor = {vermelho:0, amarelo:1};
+  const ultimas = [...ins]
+    .filter(u => (u.cor||corDeStatus(u.status)) !== 'verde')
+    .sort((a,b)=>{
+      const ca = a.cor||corDeStatus(a.status), cb = b.cor||corDeStatus(b.status);
+      if ((ordemCor[ca]??2) !== (ordemCor[cb]??2)) return (ordemCor[ca]??2)-(ordemCor[cb]??2);
+      return chaveData(b.data).localeCompare(chaveData(a.data));
+    })
+    .slice(0,10);
   let h = `
   <div class="grid g4" style="margin-bottom:16px">
     <div class="stat"><span class="lbl">Disponíveis</span><span class="num verde">${porCor.verde}</span></div>
@@ -214,11 +223,11 @@ function renderDashboard(){
     h += `</div></div>`;
   }
 
-  h += `<div class="card"><h2>Últimas inspeções</h2><div class="twrap"><table>
-    <tr><th>Data</th><th>Célula</th><th>Inspetor</th><th>Status</th><th>Observações</th></tr>`;
-  if (!ultimas.length) h += `<tr><td colspan=5 style="color:hsl(var(--muted-foreground))">Nenhuma inspeção registrada.</td></tr>`;
+  h += `<div class="card"><h2>Pendências e atenções</h2><div class="twrap"><table>
+    <tr><th>Data</th><th>Célula</th><th>Status</th><th>Observações</th></tr>`;
+  if (!ultimas.length) h += `<tr><td colspan=4 style="color:hsl(var(--muted-foreground))">Nenhuma pendência ou atenção registrada. ✓</td></tr>`;
   for (const u of ultimas){
-    h += `<tr><td><b>${esc(u.data)}</b></td><td><b>${esc(u.tag)}</b></td><td>${esc(u.inspetor||'—')}</td><td>${badge(u.cor||corDeStatus(u.status), u.status)}</td><td>${esc(u.obs||u.nota||'—')}</td></tr>`;
+    h += `<tr><td><b>${esc(u.data)}</b></td><td><b>${esc(u.tag)}</b></td><td>${badge(u.cor||corDeStatus(u.status), u.status)}</td><td>${esc(u.obs||u.nota||'—')}</td></tr>`;
   }
   h += `</table></div></div>`;
 
@@ -304,6 +313,7 @@ function renderInspecoes(){
     <p style="font-size:12.5px;color:hsl(var(--muted-foreground))">Clique em <b>DISPONÍVEL</b>, <b>ATENÇÃO</b> ou <b>INDISPONÍVEL</b> para registrar a célula. O relatório de turno e o histórico da célula são atualizados na hora.</p>
   </div>`;
   (S.circuitos||[]).forEach((c,ci)=>{
+    if (/BOMBEAMENTO/.test(c.nome||'')) return; // bombeamento não entra nas inspeções
     h += `<div class="circ"><div class="circ-head">
       <input type="text" data-path="circuitos.${ci}.nome" value="${esc(c.nome)}" placeholder="Nome do circuito" style="max-width:260px">
       <input type="text" data-path="circuitos.${ci}.badge" value="${esc(c.badge)}" placeholder="Badge (ex.: 5/6 DISPONÍVEIS)" style="max-width:200px">
