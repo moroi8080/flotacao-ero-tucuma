@@ -232,10 +232,26 @@ tr:last-child td{border-bottom:0;}
 
 /* edição avançada (editor antigo) */
 .circ{background:hsl(var(--muted));border:1px solid hsl(var(--border));border-radius:var(--radius);padding:10px;margin-bottom:10px;}
-.circ-head{display:flex;gap:8px;margin-bottom:8px;align-items:center;}
+.circ-head{display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap;}
 .circ-itens{display:flex;flex-direction:column;gap:6px;}
-.item{display:flex;gap:6px;align-items:center;}
+.item{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
 .item input{flex:1 1 0;min-width:60px;margin:0;}
+
+/* botões de status por célula (página Inspeções) */
+.seg{display:flex;gap:4px;flex-wrap:wrap;}
+.segbtn{
+  border:1px solid;border-radius:999px;padding:4px 11px;font-size:11px;font-weight:800;
+  letter-spacing:.3px;background:transparent;white-space:nowrap;
+}
+.segbtn.verde{color:var(--ok-fg);border-color:var(--ok);}
+.segbtn.verde:hover{background:var(--ok-bg);}
+.segbtn.verde.on{background:#1E9E4F;color:#fff;border-color:#1E9E4F;}
+.segbtn.amarelo{color:var(--warn-fg);border-color:var(--warn);}
+.segbtn.amarelo:hover{background:var(--warn-bg);}
+.segbtn.amarelo.on{background:#E8A33D;color:#fff;border-color:#E8A33D;}
+.segbtn.vermelho{color:var(--bad-fg);border-color:var(--bad);}
+.segbtn.vermelho:hover{background:var(--bad-bg);}
+.segbtn.vermelho.on{background:#D64545;color:#fff;border-color:#D64545;}
 .csel{width:104px;flex:0 0 104px;margin:0;font-weight:600;}
 .c-verde{background:var(--ok-bg);border-color:var(--ok);color:var(--ok-fg);}
 .c-amarelo{background:var(--warn-bg);border-color:var(--warn);color:var(--warn-fg);}
@@ -304,7 +320,7 @@ tr:last-child td{border-bottom:0;}
   </section>
 
   <section class="page" id="page-inspecoes" style="display:none">
-    <div class="phead"><h1>Inspeções</h1><p>Registro de inspeção por célula — status operacional, checklist e histórico.</p></div>
+    <div class="phead"><h1>Inspeções</h1><p>Registro por célula — clique no status (DISPONÍVEL / ATENÇÃO / INDISPONÍVEL) e escreva a observação. Atualiza o relatório na hora.</p></div>
     <div id="insp"></div>
   </section>
 

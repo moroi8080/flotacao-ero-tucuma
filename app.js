@@ -73,9 +73,6 @@ const CHECKLIST = [
   {k:'vazamento',   l:'Vazamentos',                ops:['Nenhum','Pequeno','Grande']},
   {k:'fixacoes',    l:'Fixações / parafusos',      ops:['OK','Não conformidade']}
 ];
-const PROBLEMAS = {espuma:['Irregular','Sem espuma'], vazamento:['Pequeno','Grande'], fixacoes:['Não conformidade']};
-
-const STATUS_OPCOES = ['DISPONÍVEL','CORRIGIDO','ATENÇÃO','RESTRIÇÃO','BYPASS','MANUAL','FORA DE SERVIÇO','INDISPONÍVEL'];
 function corDeStatus(st){
   const s = String(st||'').toUpperCase();
   if (s.startsWith('FORA') || s.startsWith('INDISPON')) return 'vermelho';
@@ -301,79 +298,63 @@ function programarSemana(){
 
 // ---------- INSPEÇÕES ----------
 function renderInspecoes(){
-  const ins = [...(S.inspecoes||[])].sort((a,b)=>chaveData(b.data).localeCompare(chaveData(a.data)));
-  let h = `<div class="card"><div class="btnrow" style="justify-content:space-between">
-    <div><h2 style="margin:0">Registros de inspeção</h2></div>
-    <button class="btn prim" data-act="nova-inspecao">➕ Nova inspeção</button>
-  </div></div>`;
-  h += `<div class="card"><div class="twrap"><table>
-    <tr><th>Data</th><th>Célula</th><th>Inspetor</th><th>Status</th><th>Observações</th><th></th></tr>`;
-  if (!ins.length) h += `<tr><td colspan=6 style="color:hsl(var(--muted-foreground))">Nenhuma inspeção registrada. Clique em "Nova inspeção".</td></tr>`;
-  ins.forEach((u,ui)=>{
-    const idx = S.inspecoes.indexOf(u);
-    h += `<tr>
-      <td><b>${esc(u.data)}</b></td><td><b>${esc(u.tag)}</b></td><td>${esc(u.inspetor||'—')}</td>
-      <td>${badge(u.cor||corDeStatus(u.status), u.status)}</td><td>${esc(u.obs||u.nota||'—')}</td>
-      <td><button class="btn ghost mini" data-act="editar-inspecao" data-i="${idx}">✏️</button></td>
-    </tr>`;
+  const t = S.topo||{};
+  let h = `<div class="card" style="border-left:4px solid hsl(var(--primary))">
+    <h2>Registro por célula — ${esc(t.data||'')}</h2>
+    <p style="font-size:12.5px;color:hsl(var(--muted-foreground))">Clique em <b>DISPONÍVEL</b>, <b>ATENÇÃO</b> ou <b>INDISPONÍVEL</b> para registrar a célula. O relatório de turno e o histórico da célula são atualizados na hora.</p>
+  </div>`;
+  (S.circuitos||[]).forEach((c,ci)=>{
+    h += `<div class="circ"><div class="circ-head">
+      <input type="text" data-path="circuitos.${ci}.nome" value="${esc(c.nome)}" placeholder="Nome do circuito" style="max-width:260px">
+      <input type="text" data-path="circuitos.${ci}.badge" value="${esc(c.badge)}" placeholder="Badge (ex.: 5/6 DISPONÍVEIS)" style="max-width:200px">
+      <button class="btn danger mini" data-act="ins-del-circ" data-i="${ci}" title="Remover circuito">✕</button>
+      </div><div class="circ-itens">`;
+    (c.itens||[]).forEach((it,ii)=>{
+      if (it.tag === 'PENDÊNCIAS' || it.tag === 'VÁCUO'){
+        // linhas que não são células: mantém o formato antigo (status livre + cor + observação)
+        h += `<div class="item">
+          <input type="text" data-path="circuitos.${ci}.itens.${ii}.tag" value="${esc(it.tag)}" style="max-width:110px">
+          <input type="text" data-path="circuitos.${ci}.itens.${ii}.status" value="${esc(it.status)}" placeholder="STATUS" style="max-width:120px">
+          ${corSel('circuitos.'+ci+'.itens.'+ii+'.cor', it.cor)}
+          <input type="text" data-path="circuitos.${ci}.itens.${ii}.nota" value="${esc(it.nota)}" placeholder="Observação">
+        </div>`;
+      } else {
+        const cor = it.cor || corDeStatus(it.status);
+        h += `<div class="item">
+          <input type="text" data-path="circuitos.${ci}.itens.${ii}.tag" value="${esc(it.tag)}" style="max-width:110px">
+          <div class="seg">
+            ${segBtn(ci,ii,'DISPONÍVEL',cor)}
+            ${segBtn(ci,ii,'ATENÇÃO',cor)}
+            ${segBtn(ci,ii,'INDISPONÍVEL',cor)}
+          </div>
+          <input type="text" data-act="fc-obs" data-ci="${ci}" data-ii="${ii}" value="${esc(it.nota==='—'?'':it.nota)}" placeholder="Observação">
+          <button class="btn danger mini" data-act="ins-del-item" data-i="${ci}" data-j="${ii}" title="Remover item">✕</button>
+        </div>`;
+      }
+    });
+    h += `</div><button class="btn outline mini" style="margin-top:8px" data-act="ins-add-item" data-i="${ci}">+ adicionar item</button></div>`;
   });
-  h += `</table></div></div>`;
+  h += `<button class="btn outline mini" data-act="ins-add-circ">+ adicionar circuito</button>`;
   document.getElementById('insp').innerHTML = h;
 }
 
-function abrirFormInspecao(tagSel, dataSel){
-  const tags = tagsCelulas();
-  if (!tagSel && tags.length) tagSel = tags[0];
-  const base = {status:'DISPONÍVEL', check:{}, obs:'', inspetor:''};
-  let editando = null;
-  if (tagSel && dataSel){
-    editando = (S.inspecoes||[]).find(i=>i.tag===tagSel && i.data===dataSel) || null;
-  }
-  const u = editando || base;
-  const check = u.check||{};
-  const st = u.status||'DISPONÍVEL';
-  const manualPct = st.match(/^MANUAL\s+(\d+)%/);
-  const stBase = manualPct ? 'MANUAL' : st;
-
-  let h = `<h3>${editando?'Editar':'Nova'} inspeção — célula de flotação</h3>
-    <div class="sub">O status salvo também atualiza o relatório de turno.</div>
-    <div class="fgrid">
-      <div class="campo"><label>Célula *</label><select id="f-tag">`;
-  for (const t of tags) h += `<option${t===u.tag?' selected':''}>${esc(t)}</option>`;
-  h += `</select></div>
-      <div class="campo"><label>Data *</label><input type="date" id="f-data" value="${brToIso(u.data||hojeBR())}"></div>
-      <div class="campo"><label>Inspetor</label><input type="text" id="f-inspetor" value="${esc(u.inspetor||'')}" placeholder="Nome ou turma"></div>
-      <div class="campo"><label>Status operacional *</label><select id="f-status">`;
-  for (const s of STATUS_OPCOES) h += `<option${s===stBase?' selected':''}>${s}</option>`;
-  h += `</select></div>
-    </div>
-    <div class="campo" id="f-manualwrap" style="display:${stBase==='MANUAL'?'':'none'}">
-      <label>% em manual</label><input type="text" id="f-manual" value="${manualPct?manualPct[1]:''}" placeholder="ex.: 30" style="max-width:120px">
-    </div>
-    <h3 style="margin:16px 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:1px;color:hsl(var(--muted-foreground))">Checklist</h3>
-    <div class="fgrid">`;
-  for (const c of CHECKLIST){
-    h += `<div class="campo"><label>${esc(c.l)}</label><select id="chk-${c.k}">`;
-    const cur = check[c.k]||'';
-    if (!c.ops.includes(cur) && cur) h += `<option selected>${esc(cur)}</option>`;
-    for (const op of c.ops) h += `<option${op===cur?' selected':''}>${op}</option>`;
-    h += `</select></div>`;
-  }
-  h += `</div>
-    <div class="campo"><label>Observações</label><textarea id="f-obs" placeholder="Observações adicionais sobre a inspeção...">${esc(u.obs||'')}</textarea></div>
-    <div class="btnrow" style="justify-content:flex-end">
-      <button class="btn outline" onclick="fecharModal()">Cancelar</button>
-      <button class="btn prim" data-act="salvar-inspecao" data-editando="${editando?'1':'0'}" data-tag-orig="${esc(u.tag||'')}" data-data-orig="${esc(u.data||'')}">💾 Salvar inspeção</button>
-    </div>`;
-  const mc = document.getElementById('modal-corpo');
-  mc.dataset.tagOrig = u.tag||'';
-  mc.dataset.dataOrig = u.data||'';
-  abrirModal(h);
-
-  const selStatus = document.getElementById('f-status');
-  const wrapManual = document.getElementById('f-manualwrap');
-  selStatus.addEventListener('change', ()=>{ wrapManual.style.display = selStatus.value==='MANUAL' ? '' : 'none'; });
+function segBtn(ci, ii, status, cor){
+  const mapa = {DISPONÍVEL:'verde', ATENÇÃO:'amarelo', INDISPONÍVEL:'vermelho'};
+  const on = (cor === mapa[status]) ? ' on' : '';
+  return `<button class="segbtn ${mapa[status]}${on}" data-act="fc-status" data-ci="${ci}" data-ii="${ii}" data-status="${status}">${status}</button>`;
 }
+
+// registra/atualiza a inspeção do dia no histórico da célula
+function registrarCelula(it){
+  const data = (S.topo && S.topo.data) || hojeBR();
+  if (!it.nota || it.nota === '—') it.nota = '—';
+  let reg = (S.inspecoes||[]).find(i=>i.tag===it.tag && i.data===data);
+  if (!reg){ reg = {tag:it.tag, data, inspetor:'', check:{}, obs:''}; S.inspecoes.push(reg); }
+  reg.status = it.status; reg.cor = it.cor; reg.nota = it.nota; reg.obs = (it.nota==='—'?'':it.nota);
+  const prog = (S.planejamento||[]).find(p=>p.tag===it.tag && !p.efetiva);
+  if (prog) prog.efetiva = data;
+}
+
 
 function resumoChecklist(check){
   const partes = [];
@@ -385,60 +366,6 @@ function resumoChecklist(check){
   return partes.join(' · ');
 }
 
-function salvarInspecao(){
-  const val = id => document.getElementById(id).value;
-  const tag = val('f-tag');
-  const data = isoToBR(val('f-data'));
-  const inspetor = val('f-inspetor').trim();
-  let status = val('f-status');
-  if (status === 'MANUAL'){
-    const pct = val('f-manual').trim();
-    if (pct) status = 'MANUAL ' + pct.replace('%','') + '%';
-  }
-  const check = {};
-  for (const c of CHECKLIST) check[c.k] = val('chk-'+c.k);
-  const obs = val('f-obs').trim();
-  const resumo = resumoChecklist(check);
-  const nota = [obs, resumo].filter(Boolean).join(' · ') || '—';
-  const cor = corDeStatus(status);
-
-  // substitui registro existente da mesma célula+data (edição)
-  const mc = document.getElementById('modal-corpo');
-  const antigo = (S.inspecoes||[]).find(i=>(i.tag===mc.dataset.tagOrig) && (i.data===mc.dataset.dataOrig));
-  const registro = {tag, data, inspetor, status, cor, nota, check, obs};
-  if (antigo){
-    Object.assign(antigo, registro);
-  } else {
-    // evita duplicar mesma célula+data
-    const dup = (S.inspecoes||[]).find(i=>i.tag===tag && i.data===data);
-    if (dup) Object.assign(dup, registro);
-    else (S.inspecoes=S.inspecoes||[]).push(registro);
-  }
-
-  // atualiza o item correspondente no relatório de turno
-  let achou = false;
-  for (const c of (S.circuitos||[]))
-    for (const it of (c.itens||[])){
-      if (it.tag === tag){
-        it.status = status; it.cor = cor; it.nota = nota;
-        achou = true;
-      }
-    }
-  if (!achou){
-    let extra = (S.circuitos||[]).find(c=>c.nome==='OUTROS EQUIPAMENTOS');
-    if (!extra){ extra = {nome:'OUTROS EQUIPAMENTOS', badge:'', itens:[]}; S.circuitos.push(extra); }
-    extra.itens.push({tag, status, cor, nota});
-  }
-
-  // se a inspeção tem data efetiva, registra na programação se existir entrada
-  const prog = (S.planejamento||[]).find(p=>p.tag===tag && !p.efetiva);
-  if (prog) prog.efetiva = data;
-
-  salvarLocal();
-  fecharModal();
-  renderPagina();
-  mostrar('Inspeção salva ✓');
-}
 
 // ---------- STATUS ----------
 function renderStatus(){
@@ -626,6 +553,15 @@ function setPath(o, path, v){
 
 // ---------- eventos globais ----------
 document.addEventListener('input', e=>{
+  if (e.target.dataset.act === 'fc-obs'){
+    const c = S.circuitos[+e.target.dataset.ci];
+    const it = c && c.itens[+e.target.dataset.ii];
+    if (!it) return;
+    it.nota = e.target.value.trim() || '—';
+    registrarCelula(it);
+    agendarSalvar();
+    return;
+  }
   const p = e.target.dataset.path;
   if (!p) return;
   setPath(S, p, e.target.value);
@@ -649,12 +585,22 @@ document.addEventListener('click', e=>{
     else mostrar('Todas as células já estão programadas');
   }
   else if (a==='prog-del'){ S.planejamento.splice(i,1); agendarSalvar(); renderPlanejamento(); }
-  else if (a==='nova-inspecao') abrirFormInspecao();
-  else if (a==='editar-inspecao'){
-    const u = (S.inspecoes||[])[i];
-    if (u) abrirFormInspecao(u.tag, u.data);
+  else if (a==='fc-status'){
+    const c = S.circuitos[+el.dataset.ci];
+    const it = c && c.itens[+el.dataset.ii];
+    if (!it) return;
+    const mapa = {DISPONÍVEL:'verde', ATENÇÃO:'amarelo', INDISPONÍVEL:'vermelho'};
+    it.status = el.dataset.status;
+    it.cor = mapa[el.dataset.status];
+    registrarCelula(it);
+    salvarLocal();
+    renderInspecoes();
+    mostrar(it.tag + ' → ' + it.status + ' ✓');
   }
-  else if (a==='salvar-inspecao') salvarInspecao();
+  else if (a==='ins-add-circ'){ S.circuitos.push({nome:'NOVO CIRCUITO', badge:'', itens:[{tag:'TAG-000',status:'DISPONÍVEL',cor:'verde',nota:'—'}]}); salvarLocal(); renderInspecoes(); }
+  else if (a==='ins-del-circ'){ S.circuitos.splice(i,1); salvarLocal(); renderInspecoes(); }
+  else if (a==='ins-add-item'){ S.circuitos[i].itens.push({tag:'TAG-000',status:'DISPONÍVEL',cor:'verde',nota:'—'}); salvarLocal(); renderInspecoes(); }
+  else if (a==='ins-del-item'){ S.circuitos[i].itens.splice(j,1); salvarLocal(); renderInspecoes(); }
   else if (a==='cel-detalhe') abrirDetalheCelula(el.dataset.tag);
 
   else if (a==='preview') preview();
