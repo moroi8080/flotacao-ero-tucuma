@@ -115,6 +115,10 @@ async function renderPNG(dados, iconeImg) {
   cv.width = W;
   cv.height = H;
 
+  // fundo branco explícito (senão o PNG sai transparente e vira preto nos visualizadores)
+  ctx.fillStyle = WHITE;
+  ctx.fillRect(0, 0, W, H);
+
   ctx.textBaseline = 'top';
   let y = 0;
   const topo = dados.topo || {};
