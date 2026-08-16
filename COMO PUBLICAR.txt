@@ -1,0 +1,65 @@
+============================================================
+COMO PUBLICAR NO GITHUB PAGES (GRÁTIS)
+Página estática — igual ao site da escala 4x4
+Não depende do seu PC · Sem login · Funciona como app no celular
+============================================================
+
+O QUE ESTA PASTA CONTÉM (13 arquivos, todos vão para o GitHub):
+  index.html            -> o editor completo
+  render.js             -> gerador do PNG (dentro do navegador)
+  manifest.webmanifest  -> permite instalar como app no celular
+  icon-180.png, icon-192.png, icon-512.png -> ícones do app
+  ero_icon.png          -> logo ERO no topo do relatório
+  segoeui.woff2, segoeuib.woff2, segoeuii.woff2 -> fontes
+  COMO PUBLICAR.txt     -> este guia
+
+PASSO 1 — CONTA NO GITHUB (2 min)
+ 1. Abra https://github.com/signup e crie uma conta grátis
+    (confirme pelo e-mail).
+
+PASSO 2 — CRIAR O REPOSITÓRIO (2 min)
+ 1. Entre e clique no botão verde "New repository"
+ 2. Nome: relatorio-flotacao   (sem espaços, minúsculas)
+ 3. Deixe PÚBLICO (o plano grátis só publica repositórios públicos)
+ 4. Clique em "Create repository"
+
+PASSO 3 — ENVIAR OS ARQUIVOS (2 min)
+ 1. Na página do repositório, clique em "uploading an existing file"
+ 2. Selecione TODOS os 13 arquivos desta pasta e arraste
+    (ou use "choose your files")
+ 3. Clique no botão verde "Commit changes"
+
+PASSO 4 — ATIVAR O GITHUB PAGES (2 min)
+ 1. No repositório: aba "Settings" > menu "Pages"
+ 2. Em "Build and deployment" > "Source": escolha
+    "Deploy from a branch"
+ 3. Branch: main > pasta / (root) > clique "Save"
+ 4. Aguarde ~1 minuto. O site ficará em:
+
+       https://SEU-USUARIO.github.io/relatorio-flotacao/
+
+PASSO 5 — USAR COMO APP NO CELULAR
+  - Android (Chrome): abra o endereço > menu (3 pontinhos)
+    > "Adicionar à tela inicial" / "Instalar app"
+  - iPhone (Safari): botão Compartilhar > "Adicionar à Tela de Início"
+
+============================================================
+COMO FUNCIONA
+ - Os dados ficam salvos no PRÓPRIO aparelho (memória local)
+   e são salvos automaticamente a cada digitação.
+ - "Exportar" baixa um arquivo .json com tudo preenchido.
+ - "Importar" carrega um .json exportado (ex.: recebido pelo
+   WhatsApp — abre o arquivo pelo app do site).
+ - "Baixar PNG" gera a imagem do relatório (pronta p/ enviar).
+ - "Baixar DOC" gera o relatório escrito (abre no Word).
+ - "Padrão" volta os dados para o modelo inicial.
+ - IMPORTANTE: cada aparelho tem a sua cópia dos dados.
+   Para compartilhar o mesmo conteúdo entre turnos, o turno
+   que fechou exporta o .json e manda no WhatsApp; o turno
+   que chega importa. (Ou usem sempre o mesmo PC da sala.)
+============================================================
+PARA ATUALIZAR O SISTEMA DEPOIS
+ - Substitua os arquivos no repositório (botão "Add file" >
+   "Upload files") e faça "Commit changes". O site atualiza
+   sozinho em ~1 minuto.
+============================================================

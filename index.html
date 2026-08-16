@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relatório Flotação ERO</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="theme-color" content="#00727A">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif;}
+body{background:#f0f4f4;}
+#bar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;background:#00545b;color:#fff;padding:10px 18px;}
+#bar .tit{font-weight:800;font-size:17px;letter-spacing:.5px;}
+#bar .tit span{font-weight:400;color:#9fc6c4;font-size:13px;}
+#bar .acoes{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+#msg{font-size:13px;color:#bff6f0;font-weight:600;}
+#ult{font-size:12px;color:#9fc6c4;font-weight:600;}
+button{font:inherit;border:0;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer;}
+.prim{background:#3fe0d6;color:#06231f;}
+.prim:hover{background:#5fe9df;}
+.outline{background:transparent;color:#bff6f0;border:1px solid #3d8f8c;}
+.outline:hover{background:#0a6a70;}
+.del{background:#fde8e8;color:#d64545;padding:6px 10px;font-size:13px;}
+.mini{background:#eaf4f3;color:#00727a;border:1px dashed #9fc6c4;padding:5px 10px;font-size:12px;}
+.wide{display:block;width:100%;margin-top:8px;}
+#corpo{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;max-width:1420px;margin:16px auto;padding:0 16px;align-items:start;}
+@media (max-width:1000px){#corpo{grid-template-columns:1fr;}}
+.card{background:#fff;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.08);}
+.card h2{font-size:14px;color:#00727a;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:12px;}
+label{display:block;font-size:12px;color:#4b5563;font-weight:600;margin-bottom:9px;}
+input,select{width:100%;padding:7px 10px;border:1px solid #cfd8d8;border-radius:8px;font-size:13px;margin-top:3px;background:#fff;color:#1f2937;}
+input:focus,select:focus{outline:2px solid #3fe0d6;border-color:#00727a;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.circ{background:#f7faf9;border:1px solid #e3eceb;border-radius:10px;padding:10px;margin-bottom:10px;}
+.circ-head{display:flex;gap:8px;margin-bottom:8px;align-items:center;}
+.circ-itens{display:flex;flex-direction:column;gap:6px;}
+.item{display:flex;gap:6px;align-items:center;}
+.item input{flex:1 1 0;min-width:60px;margin-top:0;}
+.csel{width:104px;flex:0 0 104px;margin-top:0;font-weight:600;}
+.c-verde{background:#e8f7ee;border-color:#1e9e4f;color:#167a3d;}
+.c-amarelo{background:#fdf4e3;border-color:#e8a33d;color:#9c6a13;}
+.c-vermelho{background:#fdeaea;border-color:#d64545;color:#b33232;}
+.pend-item,.pill-item{display:flex;gap:8px;margin-bottom:8px;align-items:center;}
+.pend-item input{flex:1;margin-top:0;}
+.pill-item input{flex:1 1 0;min-width:70px;margin-top:0;}
+#preview-col{position:sticky;top:70px;}
+.pv-tit{font-size:11px;color:#8a9494;font-weight:800;letter-spacing:1.5px;margin-bottom:8px;}
+#pv{width:100%;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.15);background:#fff;}
+#credito{text-align:center;font-size:11px;color:#8a9494;padding:18px 16px 26px;}
+</style>
+</head>
+<body>
+
+<div id="bar">
+  <div class="tit">RELATÓRIO FLOTAÇÃO <span>— editor</span></div>
+  <div class="acoes">
+    <span id="ult"></span>
+    <span id="msg"></span>
+    <button class="outline" onclick="preview()">🔄 Preview</button>
+    <button class="outline" onclick="exportarJSON()">⬇ Exportar</button>
+    <button class="outline" onclick="document.getElementById('imp').click()">⬆ Importar</button>
+    <button class="outline" onclick="restaurarPadrao()">⟲ Padrão</button>
+    <button class="prim" onclick="baixarDOC()">📄 Baixar DOC</button>
+    <button class="prim" onclick="baixarPNG()">🖼️ Baixar PNG</button>
+  </div>
+</div>
+<input type="file" id="imp" accept=".json" style="display:none">
+
+<div id="corpo">
+  <div id="forms">
+    <div class="card" id="card-topo"></div>
+    <div class="card" id="card-circuitos"></div>
+    <div class="card" id="card-pendencias"></div>
+    <div class="card" id="card-pills"></div>
+    <div class="card" id="card-rodape"></div>
+  </div>
+  <div id="preview-col">
+    <div class="pv-tit">PREVIEW PNG</div>
+    <img id="pv" alt="preview do relatório">
+  </div>
+</div>
+
+<div id="credito">© 2026 - Desenvolvido por Matheus Gustavo Melo Da Silva - Sala de Controle ERO TUCUMÃ</div>
+
+<script src="render.js"></script>
+<script>
+const CHAVE = 'flotacao_dados_v1';
+const DADOS_PADRAO = {
+  topo: {rotulo1:"ERO TUCUMÃ", rotulo2:"SALA DE CONTROLE · FLOTAÇÃO", data:"16/08/2026", semana:"SEMANA 33"},
+  titulo: "RELATÓRIO FUNCIONAMENTO FLOTAÇÃO",
+  subtitulo: "ROUGHER · CLEANER · SCAVENGER",
+  slogan: "Trabalhamos com o comprometimento de todos para uma operação segura, produtiva e dentro do prazo.",
+  circuitos: [
+    {nome:"CIRCUITO ROUGHER", badge:"5/6 DISPONÍVEIS", itens:[
+      {tag:"FC-001",status:"ATENÇÃO",cor:"amarelo",nota:"Suspeita de obstrução na linha de ar — inversão do soprador p/ comprovação"},
+      {tag:"FC-002",status:"DISPONÍVEL",cor:"verde",nota:"—"},
+      {tag:"FC-003",status:"RESTRIÇÃO",cor:"amarelo",nota:"4230-LCV-0271A fora de serviço — dardos sem controle de nível"},
+      {tag:"FC-004",status:"DISPONÍVEL",cor:"verde",nota:"—"},
+      {tag:"FC-005",status:"DISPONÍVEL",cor:"verde",nota:"—"},
+      {tag:"FC-006",status:"DISPONÍVEL",cor:"verde",nota:"—"}]},
+    {nome:"JAMESON 01", badge:"OPERANDO", itens:[
+      {tag:"FC-010",status:"CORRIGIDO",cor:"verde",nota:"01 linha de ar e 01 downcomer obstruídos — inspeção da operação"},
+      {tag:"VÁCUO",status:"MANUAL 30%",cor:"amarelo",nota:"Controlador de ar em manual → vácuo em -10,00"},
+      {tag:"PENDÊNCIAS",status:"ABERTO",cor:"amarelo",nota:"Distribuidores de água danificados (compra) · 03 downcomers sem conexão"}]},
+    {nome:"CIRCUITO CLEANER", badge:"3/3 C/ RESTRIÇÕES", itens:[
+      {tag:"FC-011",status:"ATENÇÃO",cor:"amarelo",nota:"Linha de água de calha obstruída"},
+      {tag:"FC-012",status:"ATENÇÃO",cor:"amarelo",nota:"Ruído anormal no acoplamento do rotor — preventiva agendada"},
+      {tag:"FC-013",status:"ATENÇÃO",cor:"amarelo",nota:"Tubulação de ar obstruída"}]},
+    {nome:"CIRCUITO SCAVENGER", badge:"2/3 DISPONÍVEIS", itens:[
+      {tag:"FC-018",status:"DISPONÍVEL",cor:"verde",nota:"—"},
+      {tag:"FC-019",status:"DISPONÍVEL",cor:"verde",nota:"—"},
+      {tag:"FC-020",status:"ATENÇÃO",cor:"amarelo",nota:"Controlador de ar c/ erro de balanceamento — LCV-0041 Dardo A desvio elevado"}]},
+    {nome:"JAMESON 02", badge:"OPERANDO", itens:[
+      {tag:"FC-025",status:"ATENÇÃO",cor:"amarelo",nota:"4230-FIC-0017 em manual (32%) — em automático cicla e zera o vácuo"},
+      {tag:"PENDÊNCIAS",status:"ABERTO",cor:"amarelo",nota:"Distribuidores de água danificados (compra) · 01 downcomer sem conexão"}]},
+    {nome:"FLOTAÇÃO PIRITA", badge:"5/6 DISPONÍVEIS", itens:[
+      {tag:"FC-026",status:"FORA DE SERVIÇO",cor:"vermelho",nota:"4230-LCV-0072 Dardo B"},
+      {tag:"FC-027",status:"DISPONÍVEL",cor:"verde",nota:"—"},
+      {tag:"FC-028",status:"BYPASS",cor:"amarelo",nota:"4230-LCV-002 Dardo B travada aberta 100% — Dardo A insuficiente"},
+      {tag:"FC-029 · FC-030 · FC-031",status:"DISPONÍVEIS",cor:"verde",nota:"—"}]},
+    {nome:"BOMBEAMENTO PIRITA", badge:"1/2 OPERANDO", itens:[
+      {tag:"PU-020",status:"MANUAL 85%",cor:"amarelo",nota:"Em automático (nível HP-009) força a bomba e quebra correias"},
+      {tag:"PU-020R",status:"INDISPONÍVEL",cor:"vermelho",nota:"Sucção travada — mecânica corretiva ciente"}]}
+  ],
+  pendencias: [
+    "Distribuidores de água danificados (Jameson 01 e 02) — aquisição de sobressalentes",
+    "Downcomers sem conexão — 03 no Jameson 01 e 01 no Jameson 02",
+    "FC-012 — preventiva do acoplamento do rotor (aguardando programação)",
+    "FC-026 — 4230-LCV-0072 Dardo B fora de serviço",
+    "PU-020R — sucção travada (mecânica corretiva)"
+  ],
+  pills: [
+    {rotulo:"ROUGHER",valor:"5/6",cor:"verde"},
+    {rotulo:"CLEANER",valor:"3/3",cor:"amarelo"},
+    {rotulo:"SCAVENGER",valor:"2/3",cor:"amarelo"},
+    {rotulo:"PIRITA",valor:"5/6",cor:"verde"},
+    {rotulo:"BOMBAS",valor:"1/2",cor:"vermelho"}
+  ],
+  rodape1: "SEGURANÇA  ·  QUALIDADE  ·  PRODUÇÃO",
+  rodape2: "O VERDE NOS PERTENCE"
+};
+
+let S = carregarEstado();
+const icone = new Image();
+icone.src = 'ero_icon.png';
+
+function carregarEstado(){
+  try{
+    const raw = localStorage.getItem(CHAVE);
+    if (raw) return JSON.parse(raw);
+  }catch(e){}
+  return JSON.parse(JSON.stringify(DADOS_PADRAO));
+}
+
+let tSalvar = null;
+function salvarLocal(){
+  localStorage.setItem(CHAVE, JSON.stringify(S));
+  document.getElementById('ult').textContent = 'Salvo em ' + new Date().toLocaleTimeString('pt-BR');
+}
+function agendarSalvar(){
+  clearTimeout(tSalvar);
+  tSalvar = setTimeout(salvarLocal, 400);
+}
+
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+
+function corSel(path, cur){
+  let o = '<select data-path="'+path+'" class="csel c-'+esc(cur)+'">';
+  for (const [v,l] of [["verde","Verde"],["amarelo","Amarelo"],["vermelho","Vermelho"]])
+    o += '<option value="'+v+'"'+(v===cur?' selected':'')+'>'+l+'</option>';
+  return o+'</select>';
+}
+
+function renderTopo(){
+  const t = S.topo || {};
+  document.getElementById('card-topo').innerHTML = `
+    <h2>Cabeçalho</h2>
+    <div class="grid2">
+      <label>Linha 1 (empresa)<input data-path="topo.rotulo1" value="${esc(t.rotulo1)}"></label>
+      <label>Linha 2 (setor)<input data-path="topo.rotulo2" value="${esc(t.rotulo2)}"></label>
+      <label>Data<input data-path="topo.data" value="${esc(t.data)}"></label>
+      <label>Semana<input data-path="topo.semana" value="${esc(t.semana)}"></label>
+    </div>
+    <label>Título<input data-path="titulo" value="${esc(S.titulo)}"></label>
+    <label>Subtítulo<input data-path="subtitulo" value="${esc(S.subtitulo)}"></label>
+    <label>Slogan<input data-path="slogan" value="${esc(S.slogan)}"></label>`;
+}
+
+function renderCircuitos(){
+  let h = '<h2>Circuitos</h2>';
+  S.circuitos.forEach((c,ci)=>{
+    h += '<div class="circ"><div class="circ-head">'
+       + '<input data-path="circuitos.'+ci+'.nome" value="'+esc(c.nome)+'" placeholder="Nome do circuito">'
+       + '<input data-path="circuitos.'+ci+'.badge" value="'+esc(c.badge)+'" placeholder="Badge (ex.: 5/6 DISPONÍVEIS)" style="max-width:220px">'
+       + '<button class="del" data-act="del-circ" data-i="'+ci+'" title="Remover circuito">✕</button>'
+       + '</div><div class="circ-itens">';
+    c.itens.forEach((it,ii)=>{
+      h += '<div class="item">'
+         + '<input data-path="circuitos.'+ci+'.itens.'+ii+'.tag" value="'+esc(it.tag)+'" placeholder="TAG">'
+         + '<input data-path="circuitos.'+ci+'.itens.'+ii+'.status" value="'+esc(it.status)+'" placeholder="STATUS">'
+         + corSel('circuitos.'+ci+'.itens.'+ii+'.cor', it.cor)
+         + '<input data-path="circuitos.'+ci+'.itens.'+ii+'.nota" value="'+esc(it.nota)+'" placeholder="Observação">'
+         + '<button class="del" data-act="del-item" data-i="'+ci+'" data-j="'+ii+'" title="Remover item">✕</button>'
+         + '</div>';
+    });
+    h += '</div><button class="mini wide" data-act="add-item" data-i="'+ci+'">+ adicionar item</button></div>';
+  });
+  h += '<button class="mini wide" data-act="add-circ">+ adicionar circuito</button>';
+  document.getElementById('card-circuitos').innerHTML = h;
+}
+
+function renderPendencias(){
+  let h = '<h2>Pendências em aberto</h2>';
+  S.pendencias.forEach((p,pi)=>{
+    h += '<div class="pend-item">'
+       + '<input data-path="pendencias.'+pi+'" value="'+esc(p)+'" placeholder="Pendência">'
+       + '<button class="del" data-act="del-pend" data-i="'+pi+'">✕</button></div>';
+  });
+  h += '<button class="mini wide" data-act="add-pend">+ adicionar pendência</button>';
+  document.getElementById('card-pendencias').innerHTML = h;
+}
+
+function renderPills(){
+  let h = '<h2>Disponibilidade geral</h2>';
+  S.pills.forEach((pl,pi)=>{
+    h += '<div class="pill-item">'
+       + '<input data-path="pills.'+pi+'.rotulo" value="'+esc(pl.rotulo)+'" placeholder="Rótulo">'
+       + '<input data-path="pills.'+pi+'.valor" value="'+esc(pl.valor)+'" placeholder="x/y" style="max-width:90px">'
+       + corSel('pills.'+pi+'.cor', pl.cor)
+       + '<button class="del" data-act="del-pill" data-i="'+pi+'">✕</button></div>';
+  });
+  h += '<button class="mini wide" data-act="add-pill">+ adicionar pílula</button>';
+  document.getElementById('card-pills').innerHTML = h;
+}
+
+function renderRodape(){
+  document.getElementById('card-rodape').innerHTML = `
+    <h2>Rodapé</h2>
+    <label>Linha 1<input data-path="rodape1" value="${esc(S.rodape1)}"></label>
+    <label>Linha 2<input data-path="rodape2" value="${esc(S.rodape2)}"></label>`;
+}
+
+function render(){ renderTopo(); renderCircuitos(); renderPendencias(); renderPills(); renderRodape(); }
+
+function setPath(o, path, v){
+  const ks = path.split('.');
+  let t = o;
+  for (let k = 0; k < ks.length-1; k++) t = t[ks[k]];
+  t[ks[ks.length-1]] = v;
+}
+
+document.addEventListener('input', e=>{
+  const p = e.target.dataset.path;
+  if (!p) return;
+  setPath(S, p, e.target.value);
+  if (p.endsWith('.cor')) e.target.className = 'csel c-'+e.target.value;
+  agendarSalvar();
+});
+
+document.addEventListener('click', e=>{
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  const a = el.dataset.act, i = +el.dataset.i, j = +el.dataset.j;
+  if (a==='add-circ'){ S.circuitos.push({nome:'NOVO CIRCUITO', badge:'', itens:[{tag:'TAG-000',status:'DISPONÍVEL',cor:'verde',nota:''}]}); }
+  else if (a==='del-circ'){ S.circuitos.splice(i,1); }
+  else if (a==='add-item'){ S.circuitos[i].itens.push({tag:'TAG-000',status:'DISPONÍVEL',cor:'verde',nota:''}); }
+  else if (a==='del-item'){ S.circuitos[i].itens.splice(j,1); }
+  else if (a==='add-pend'){ S.pendencias.push(''); }
+  else if (a==='del-pend'){ S.pendencias.splice(i,1); }
+  else if (a==='add-pill'){ S.pills.push({rotulo:'NOVO',valor:'0/0',cor:'verde'}); }
+  else if (a==='del-pill'){ S.pills.splice(i,1); }
+  else return;
+  render();
+  agendarSalvar();
+});
+
+let timer = null;
+function mostrar(msg){
+  const el = document.getElementById('msg');
+  el.textContent = msg;
+  clearTimeout(timer);
+  timer = setTimeout(()=>el.textContent='', 2500);
+}
+
+function baixarBlob(blob, nome){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = nome;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
+}
+
+async function preview(){
+  const cv = await renderPNG(S, icone);
+  document.getElementById('pv').src = cv.toDataURL('image/png');
+}
+
+async function baixarPNG(){
+  mostrar('Gerando PNG…');
+  const cv = await renderPNG(S, icone);
+  cv.toBlob(b => { baixarBlob(b, 'relatorio_flotacao.png'); mostrar('PNG baixado ✓'); }, 'image/png');
+}
+
+function gerarDOC(){
+  const t = S.topo || {};
+  let h = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>Relatorio</title></head><body>';
+  h += `<p align=center><b><font color="#5A6472">${esc(t.rotulo1)} — ${esc(t.rotulo2)}</font></b></p>`;
+  h += `<p align=center><b><font size=5 color="#00727A">${esc(S.titulo)}</font></b></p>`;
+  h += `<p align=center><font color="#00545B">${esc(S.subtitulo)}</font></p>`;
+  h += `<p align=center><b><font color="#5A6472">${esc(t.data)} · ${esc(t.semana)}</font></b></p>`;
+  if (S.slogan) h += `<p align=center><i><font color="#00545B">${esc(S.slogan)}</font></i></p>`;
+  h += `<p><b><font color="#00727A">STATUS POR CIRCUITO</font></b></p>`;
+  for (const c of S.circuitos){
+    h += `<p><b><font color="#00545B">${esc(c.nome)}</font></b> <b><font size=2 color="#5A6472">${esc(c.badge||'')}</font></b></p>`;
+    h += `<table border=1 cellspacing=0 cellpadding=4><tr bgcolor="#00727A">`
+       + `<td><b><font color="#FFFFFF">EQUIPAMENTO</font></b></td><td><b><font color="#FFFFFF">STATUS</font></b></td><td><b><font color="#FFFFFF">OBSERVAÇÃO</font></b></td></tr>`;
+    for (const it of c.itens){
+      h += `<tr><td><b>${esc(it.tag)}</b></td><td><b><font color="${corDe(it.cor)}">${esc(it.status)}</font></b></td><td>${esc(it.nota)}</td></tr>`;
+    }
+    h += `</table>`;
+  }
+  if (S.pendencias.length){
+    h += `<p><b><font color="#00727A">PENDÊNCIAS EM ABERTO</font></b></p><ol>`;
+    for (const p of S.pendencias) h += `<li>${esc(p)}</li>`;
+    h += `</ol>`;
+  }
+  if (S.pills.length){
+    h += `<p><b><font color="#5A6472">DISPONIBILIDADE GERAL</font></b></p><p>`
+       + S.pills.map((pl,i)=> (i?'&nbsp;&nbsp;·&nbsp;&nbsp;':'') + `<b><font color="${corDe(pl.cor)}">${esc(pl.rotulo)} ${esc(pl.valor)}</font></b>`).join('')
+       + `</p>`;
+  }
+  h += `<br/><p align=center><font size=2 color="#5A6472">${esc(S.rodape1||'')}</font></p>`;
+  h += `<p align=center><b><font size=4 color="#00727A">${esc(S.rodape2||'')}</font></b></p>`;
+  h += `</body></html>`;
+  return new Blob(['﻿', h], {type: 'application/msword'});
+}
+
+function baixarDOC(){
+  baixarBlob(gerarDOC(), 'relatorio_flotacao.doc');
+  mostrar('DOC baixado ✓');
+}
+
+function exportarJSON(){
+  baixarBlob(new Blob([JSON.stringify(S, null, 2)], {type: 'application/json'}), 'relatorio_flotacao.json');
+  mostrar('JSON exportado ✓');
+}
+
+document.getElementById('imp').addEventListener('change', e=>{
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      S = JSON.parse(r.result);
+      render();
+      salvarLocal();
+      mostrar('Importado ✓');
+    }catch(err){ mostrar('Arquivo inválido'); }
+  };
+  r.readAsText(f);
+  e.target.value = '';
+});
+
+function restaurarPadrao(){
+  if (!confirm('Voltar aos dados padrão? O que está salvo será substituído.')) return;
+  S = JSON.parse(JSON.stringify(DADOS_PADRAO));
+  render();
+  salvarLocal();
+  mostrar('Dados padrão restaurados ✓');
+}
+
+icone.onload = () => preview();
+render();
+preview();
+</script>
+</body>
+</html>
